@@ -2,13 +2,13 @@ import numpy as np
 from sympy import *
 
 
-def boundary_check(x_inside: float, x_left: float, x_right: float) -> None:
+def boundary_check(x_inside, x_left, x_right) -> None:
     if not (x_left <= x_inside <= x_right):
         raise ValueError(
-            "Starting approximation: {0}, doesn't belong search interval: [{1}, {2}]".format(x_inside, x_left, x_right))
+            "{0} not in [{1}, {2}]".format(x_inside, x_left, x_right))
 
 
-def relaxation(f, fDX, x_left: float, x_right: float, x_start: float, eps: float = 1e-4) -> float:
+def relaxation(f, fDX, x_left, x_right, x_start, eps = 1e-4):
     boundary_check(x_start, x_left, x_right)
 
     x_values = np.linspace(x_left, x_right, min(int(1. / eps), 10 ** 5))
@@ -29,13 +29,13 @@ def relaxation(f, fDX, x_left: float, x_right: float, x_start: float, eps: float
     estimated_num_iteration = int(
         np.ceil(np.log(np.abs(x_start - x_i) / eps) / np.log(1. / q))) + 1
 
-    print('Relaxtion method. \nApriori iteration number: {0}, aposteriori iteration number: {1}'.format(
+    print('Relaxation method. \nApriori steps: {0}, aposteriori steps: {1}'.format(
         estimated_num_iteration, num_iteration))
 
     return x_i
 
 
-def newton(f, fDX, x_left: float, x_right: float, x_start: float, eps: float = 1e-4) -> float:
+def newton(f, fDX, x_left, x_right, x_start, eps = 1e-4):
     boundary_check(x_start, x_left, x_right)
 
     num_iteration = 0
@@ -50,14 +50,14 @@ def newton(f, fDX, x_left: float, x_right: float, x_start: float, eps: float = 1
     num_iteration = 0
 
     while abs(x_i - x_prev) >= eps:
-        x_i, x_prev = x_i - f(x_i)/fDX(x_i) , x_i
+        x_i, x_prev = x_i - f(x_i)/fDX(x_i), x_i
         num_iteration += 1
 
-    # estimated_num_iteration = int(
-    #     np.ceil(np.log(np.log(np.abs(x_start - x_i) / 2.) / np.log(1. / q) + 1))) + 1
+    estimated_num_iteration = int(np.ceil(
+        np.log2(np.abs(np.log(np.abs(x_start - x_i) / 2) / np.log(1. / q) + 1)))) + 1
 
-    # print('Newton\'s method. \nApriori iteration number: {0}, aposteriori iteration number: {1}'.format(
-    #     estimated_num_iteration, num_iteration))
+    print('Newton\'s method. \nApriori steps: {0}, aposteriori steps: {1}'.format(
+        estimated_num_iteration, num_iteration))
     return x_i
 
 
