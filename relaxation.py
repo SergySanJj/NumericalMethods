@@ -7,17 +7,16 @@ def boundary_check(x_inside, x_left, x_right) -> None:
         raise ValueError(
             "{0} not in [{1}, {2}]".format(x_inside, x_left, x_right))
 
-
-def relaxation(f, fDX, x_left, x_right, x_start, eps = 1e-4):
+def relaxation(f, fDX, x_left, x_right, x_start, eps=1e-4):
     boundary_check(x_start, x_left, x_right)
 
     x_values = np.linspace(x_left, x_right, min(int(1. / eps), 10 ** 5))
 
-    min_value, max_value = np.min(
+    m1, M1 = np.min(
         np.abs(fDX(x_values))), np.max(np.abs(fDX(x_values)))
 
-    tau = 2. / (min_value + max_value)
-    q = (max_value - min_value) / (min_value + max_value)
+    tau = 2. / (m1 + M1)
+    q = (M1 - m1) / (m1 + M1)
 
     x_i, x_prev = x_start, x_start - 2 * eps
     num_iteration = 0
@@ -35,16 +34,16 @@ def relaxation(f, fDX, x_left, x_right, x_start, eps = 1e-4):
     return x_i
 
 
-def newton(f, fDX, x_left, x_right, x_start, eps = 1e-4):
+def newton(f, fDX, x_left, x_right, x_start, eps=1e-4):
     boundary_check(x_start, x_left, x_right)
 
     num_iteration = 0
     x_values = np.linspace(x_left, x_right, min(int(1. / eps), 10 ** 5))
 
-    min_value, max_value = np.min(
+    m1, M1 = np.min(
         np.abs(fDX(x_values))), np.max(np.abs(fDX(x_values)))
 
-    q = (max_value - min_value) / (min_value + max_value)
+    q = (M1 - m1) / (m1 + M1)
 
     x_i, x_prev = x_start, x_start - 2 * eps
     num_iteration = 0
