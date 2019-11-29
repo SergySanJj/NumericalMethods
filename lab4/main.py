@@ -1,9 +1,12 @@
 import numpy as np
 from sympy import *
+import math
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error
 
 x_symbol = Symbol('x')
-function = (x_symbol**3 - 20*x_symbol**3 * sin(x_symbol))
+# function =  (x_symbol ** 3 - 20 * x_symbol ** 3 * sin(x_symbol) + np.e**x_symbol)
+function = sin(x_symbol)*x_symbol
 function_DX_1 = function.diff(x_symbol)
 function_DX_2 = function_DX_1.diff(x_symbol)
 function_DX_3 = function_DX_2.diff(x_symbol)
@@ -12,77 +15,64 @@ function_DX_5 = function_DX_4.diff(x_symbol)
 
 
 def delt(yi: float, yi_1: float, xi: float, xi_1: float) -> float:
-    return (yi_1 - yi)/(xi_1 - xi)
+    return (yi_1 - yi) / (xi_1 - xi)
 
 
-def Eval(a, x, r):
-    ''' a : array returned by function coef()
-        x : array of data points
-        r : the node to interpolate at '''
-    x.astype(float)
-    n = len(a) - 1
-    temp = a[n] + (r - x[n])
-    for i in range(n - 1, -1, -1):
-        temp = temp * (r - x[i]) + a[i]
-    return temp  # return the y_value interpolation
+def eval(coeffs, a, r):
+    n = len(coeffs)
+    carry = 1.
+    res = 0.
+    for i in range(0, n):
+        res += coeffs[i] * carry
+        carry *= r - a[i][0]
+
+    left = coeffs[n - 1] * carry
+    # print("R: ", left)
+
+    return res, left
 
 
-def coef_newton(x, y):
-    '''x : array of data points
-       y : array of f(x)  '''
-    x.astype(float)
-    y.astype(float)
+def coef_hermite(x, inp):
     n = len(x)
-    a = []
-    for i in range(n):
-        a.append(y[i])
-
-    for j in range(1, n):
-
-        for i in range(n-1, j-1, -1):
-            a[i] = float(a[i]-a[i-1])/float(x[i]-x[i-j])
-
-    return np.array(a)  # return an array of coefficient
-
-
-def coef_hermite(x, input):
-    n = len(x)
-
-    for i in range(0,n):
-        print(np.array(input[round(x[i], 4)]))
 
     m = -1
     for i in range(0, n):
-        m += len(input[round(x[i], 4)])
+        m += len(inp[round(x[i], 4)])
 
-    print(m)
+    print("m: ", m)
 
-    a = [[0 for x in range(m+2)] for y in range(m+1)]
+    a = [[0 for x in range(m + 2)] for y in range(m + 1)]
     prev = 0
     for i in range(0, n):
-        diffs = input[round(x[i], 4)]
+        diffs = inp[round(x[i], 4)]
         for d in range(0, len(diffs)):
-            a[prev][0] = (diffs[0])
+            a[prev][0] = (x[i])
+            a[prev][1] = (diffs[0])
             prev += 1
 
-    prev = 1
-    for i in range(1, n):
-        diffs = input[round(x[i-1], 4)]
-        for d in range(0, len(diffs)):
-            if len(diffs) > 1:
-                a[prev][1] = diffs[1]
+    for deep in range(1, m):
+
+        for i in range(deep, m):
+            xv = a[i][0]
+            diffs = inp[round(xv, 4)]
+            x_start = a[i - deep][0]
+            if round(xv, 4) == round(x_start, 4) and len(diffs) > deep:
+                a[i][deep + 1] = diffs[deep] / math.factorial(deep)
             else:
-                a[prev][1] = (a[prev][0] - a[prev-1][0])/(x[i] - x[i-1])
-                print("HERE")
-            prev += 1
+                a[i][deep + 1] = delt(a[i][deep], a[i - deep][deep], xv, x_start)
 
-    print(np.array(a))
+    # print(np.array(a))
+    coeffs = []
+    for i in range(0, m):
+        coeffs.append(a[i][i + 1])
+
+    return (coeffs, a)
 
 
 def main():
-    eps = 0.01
+    eps = 0.001
     x_left = 0.
-    x_right = 4.
+    x_right = 15. - eps
 
     f = lambdify(x_symbol, function, 'numpy')
     f_dx1 = lambdify(x_symbol, function_DX_1, 'numpy')
@@ -91,19 +81,40 @@ def main():
     f_dx4 = lambdify(x_symbol, function_DX_4, 'numpy')
     f_dx5 = lambdify(x_symbol, function_DX_5, 'numpy')
 
-    x = [0.5, 1.0, 3.0]
-    input = {
+    inp = {
         round(0.5, 4): [f(0.5), f_dx1(0.5)],
-        round(1.0, 4): [f(1.0), f_dx1(1.0), f_dx2(1.0), f_dx3(1.0), f_dx4(1.0), f_dx5(1.0)],
-        round(3.0, 4): [f(3.0), f_dx1(3.0), f_dx2(3.0), f_dx3(3.0)]
+        round(10.0, 4): [f(10.0), f_dx1(10.0), f_dx2(10.0), f_dx3(10.0), f_dx4(10.0), f_dx5(10.0)],
+
+        round(15., 4): [f(15.)],
+        round(20.0, 4): [f(20.), f_dx1(20.), f_dx2(20.), f_dx3(20.), f_dx4(20.), f_dx5(20.)],
     }
 
-    coef_hermite(x, input)
+    x = []
+    for key in inp:
+        x.append(round(key, 4))
 
     xT = np.linspace(x_left, x_right, min(int(1. / eps), 10 ** 5))
     yT = f(xT)
     plt.plot(xT, yT)
+
+    herm, a = coef_hermite(x, inp)
+    print("coeffs: ", np.array(herm))
+
+    yT_inter = []
+    Rs = 0.
+    for dp in xT:
+        val, r = eval(herm, a, dp)
+        yT_inter.append(val)
+        Rs += np.abs(r)
+
+    yT_inter = np.array(yT_inter)
+    plt.plot(xT, yT_inter)
+
     plt.savefig('start.png')
+
+    print("R sum: ", Rs)
+    # print("MSE: ", mean_squared_error(yT, yT_inter))
+    print("Finished")
 
 
 main()
